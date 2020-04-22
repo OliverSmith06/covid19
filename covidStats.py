@@ -46,23 +46,38 @@ def statsCollector():
     states = [today]
     content = driver.page_source
     soup = BeautifulSoup(content, features="html.parser")
+    threePM = False
+    iterated = False
+    for p in soup.findAll("p", {"class": "au-callout"}):
+        para = p.text
+        if (para.find("As at 3:00pm on ") != -1):
+            if iterated == False:
+                print("3:00pm data present, beginning proccess")
+            threePM = True
+            iterated = True
+        else:
+            if iterated == False:
+                print("3:00pm data not present, will try again in 1 hour")
+            iterated = True
+    iterated = False
 
-    print("Starting search")
-    for td in soup.findAll("td", {"class": "numeric"}):
-        x = td.text
-        x = x.replace(',', '')
-        x = x.replace('\n', '')
-        x = x.replace(' ', '')
-        states.append(x)
-    print("Search completed, beginning Google Sheets input")
+    if threePM:
+        print("Starting search")
+        for td in soup.findAll("td", {"class": "numeric"}):
+            x = td.text
+            x = x.replace(',', '')
+            x = x.replace('\n', '')
+            x = x.replace(' ', '')
+            states.append(x)
+        print("Search completed, beginning Google Sheets input")
 
-    for item in states:
-        column = states.index(item)
-        column += 1
-        sheet.update_cell(41 + covidDelta, column, item)
+        for item in states:
+            column = states.index(item)
+            column += 1
+            sheet.update_cell(41 + covidDelta, column, item)
 
-    print("Input completed, Inputted values are as followed:")
-    print(sheet.row_values(41 +covidDelta))
+        print("Input completed, Inputted values are as followed:")
+        print(sheet.row_values(41 +covidDelta))
 
 scheduler = BlockingScheduler()
 scheduler.add_job(statsCollector, 'interval', hours=1)
