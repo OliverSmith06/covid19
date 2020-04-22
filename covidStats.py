@@ -7,6 +7,7 @@ import pprint as pp
 import datetime
 import time
 from sys import platform
+from apscheduler.schedulers.blocking import BlockingScheduler
 print(platform)
 
 epoch = time.time()
@@ -39,25 +40,30 @@ elif platform == "win32":
 driver = webdriver.Chrome(osPath,chrome_options=chrome_options)
 print("Chromedriver initialised")
 
-driver.get("https://www.health.gov.au/news/health-alerts/novel-coronavirus-2019-ncov-health-alert/coronavirus-covid-19-current-situation-and-case-numbers")
-print("Health.gov.au retrieved")
-states = [today]
-content = driver.page_source
-soup = BeautifulSoup(content, features="html.parser")
+def statsCollector():
+    driver.get("https://www.health.gov.au/news/health-alerts/novel-coronavirus-2019-ncov-health-alert/coronavirus-covid-19-current-situation-and-case-numbers")
+    print("Health.gov.au retrieved")
+    states = [today]
+    content = driver.page_source
+    soup = BeautifulSoup(content, features="html.parser")
 
-print("Starting search")
-for td in soup.findAll("td", {"class": "numeric"}):
-    x = td.text
-    x = x.replace(',', '')
-    x = x.replace('\n', '')
-    x = x.replace(' ', '')
-    states.append(x)
-print("Search completed, beginning Google Sheets input")
+    print("Starting search")
+    for td in soup.findAll("td", {"class": "numeric"}):
+        x = td.text
+        x = x.replace(',', '')
+        x = x.replace('\n', '')
+        x = x.replace(' ', '')
+        states.append(x)
+    print("Search completed, beginning Google Sheets input")
 
-for item in states:
-    column = states.index(item)
-    column += 1
-    sheet.update_cell(41 + covidDelta, column, item)
+    for item in states:
+        column = states.index(item)
+        column += 1
+        sheet.update_cell(41 + covidDelta, column, item)
 
-print("Input completed, Inputted values are as followed:")
-print(sheet.row_values(41 +covidDelta))
+    print("Input completed, Inputted values are as followed:")
+    print(sheet.row_values(41 +covidDelta))
+
+scheduler = BlockingScheduler()
+scheduler.add_job(statsCollector, 'interval', hours=1)
+scheduler.start()
